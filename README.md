@@ -31,7 +31,7 @@ Before drafting any requirements or wireframes, I analyzed the PaySim dataset (6
 - Concentrated attack vectors: 100% of fraudulent activity occurs strictly within TRANSFER and CASH_OUT flows, while bill payments and cash-ins remain clean.
 - Account draining behavior: 85.4% of fraudulent transactions follow a distinct pattern—immediately after a new device login or password reset, the account transfers 100% of its available balance (oldbalanceOrg - amount == 0).
 - Cost-benefit threshold optimization: Financial modeling shows that missing one fraudulent transaction costs 25x more than the operational cost of triggering a biometric check for a legitimate user. Based on this trade-off, I established two optimal risk score cutoffs at 30 and 75.
-
+![Fraud Discovery Charts](./01_data_discovery/fraud_discovery_charts.png)
 ---
 
 ## 3. System Workflow & Risk Routing
