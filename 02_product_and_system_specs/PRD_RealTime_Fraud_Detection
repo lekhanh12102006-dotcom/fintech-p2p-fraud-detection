@@ -1,0 +1,78 @@
+# Product Requirements Document (PRD): Real-Time P2P Fraud Routing & AI Ops Copilot
+
+Document Status: Approved for Engineering Review
+Target Release: Phase 1 (P2P Transfer & Cash-Out Flows)
+Owner: Product / Risk Business Analyst
+
+---
+
+## 1. Scope & System Boundaries
+
+### In-Scope
+- Real-time risk scoring for outbound TRANSFER and CASH_OUT transactions.
+- Three-tier automated routing (Auto-Approve, Step-Up Biometric Auth, Hold for Ops Review).
+- AI Investigation Copilot generating plain-text risk summaries for Fraud Ops analysts.
+- Audit logging for all manual overrides and system decisions.
+
+### Out-of-Scope
+- Inbound CASH_IN transactions and routine utility BILL_PAYMENT flows (0% historical fraud rate).
+- Automated permanent account bans (requires human-in-the-loop approval).
+
+---
+
+## 2. Functional Requirements & User Stories
+
+### Epic 1: Real-Time Risk Scoring & Routing
+
+#### US-1.1: Frictionless Approval for Low-Risk Transfers
+As a legitimate e-wallet user, I want my routine P2P transfers to complete immediately without extra verification steps so that my payment experience remains fast.
+- Acceptance Criteria:
+  - GIVEN a user initiates a TRANSFER or CASH_OUT request
+  - WHEN the ML Scoring Engine returns a Risk Score between 0 and 30 within 250ms
+  - THEN the Core Payment Service automatically approves and settles the transaction within 1 second without prompting for additional authentication.
+
+#### US-1.2: Step-Up Biometric Authentication for Medium-Risk Transfers
+As a Risk Manager, I want suspicious transactions in the medium-risk tier to undergo biometric liveness verification so that we stop unauthorized access while allowing genuine users to self-verify.
+- Acceptance Criteria:
+  - GIVEN a transaction receives a Risk Score between 31 and 75
+  - WHEN the routing engine evaluates the score
+  - THEN the app displays a biometric Liveness Check prompt matched against the user's registered chip-based ID.
+  - AND IF the biometric match succeeds within 3 attempts, the transaction status updates to APPROVED and funds are released.
+  - AND IF the biometric check fails 3 consecutive times, the transaction is marked FAILED, the session is locked for 15 minutes, and a security alert is sent to the user.
+
+#### US-1.3: Transaction Hold & Escalation for High-Risk Anomalies
+As a Risk Manager, I want high-risk transfers (e.g., draining 100% balance on a new device) to be temporarily frozen so that Fraud Ops can investigate before funds leave the platform.
+- Acceptance Criteria:
+  - GIVEN a transaction receives a Risk Score between 76 and 100
+  - WHEN the routing engine processes the result
+  - THEN the transaction status is set to ON_HOLD for a maximum window of 30 minutes (funds are reserved from sender's available balance but not credited to the recipient).
+  - AND a high-priority investigation ticket is created in the Fraud Ops Portal enriched with an AI Copilot summary.
+
+---
+
+### Epic 2: AI Investigation Copilot & Fraud Ops Portal
+
+#### US-2.1: Automated Case Summarization
+As a Fraud Ops Analyst, I want to see a concise 3-bullet summary of why a transaction was flagged so that I can make an approval or rejection decision in under 2 minutes.
+- Acceptance Criteria:
+  - GIVEN a transaction enters the ON_HOLD queue
+  - WHEN the Ops Portal loads the case details
+  - THEN the AI Copilot displays a structured summary highlighting top risk drivers (e.g., balance drain ratio, device change recency, velocity spikes) alongside a recommended action.
+  - AND all Personally Identifiable Information (PII) is masked prior to LLM processing.
+
+#### US-2.2: Human-in-the-Loop Decision & Audit Trail
+As a Compliance Officer, I want every manual decision made by Fraud Ops to require a reason code and be permanently logged so that we maintain full regulatory auditability.
+- Acceptance Criteria:
+  - GIVEN a Fraud Ops Analyst reviews an ON_HOLD ticket
+  - WHEN the analyst clicks either Approve or Reject
+  - THEN the system requires selecting a standardized Reason Code and entering optional notes.
+  - AND an immutable record is written to the Audit_Logs table capturing analyst_id, transaction_id, previous_status, new_status, ai_recommendation_followed (boolean), and timestamp.
+
+---
+
+## 3. Non-Functional Requirements (NFRs)
+
+- Latency: The ML Scoring API must return a response within 250ms at the 99th percentile (p99).
+- Availability: The risk routing pipeline must maintain 99.95% uptime; ML service degradation must never block legitimate payment traffic.
+- Data Integrity: Hard deletes are strictly prohibited on transaction and audit tables; all state transitions must be append-only.
+- Security & Compliance: Full compliance with personal data protection regulations (PII masking before external API calls) and biometric verification mandates (SBV Decision 2345).
